@@ -1,4 +1,3 @@
-
 from flask import Flask, request, send_file
 from fpdf import FPDF
 import tempfile
@@ -19,11 +18,14 @@ def generate_pdf():
 
     pdf = RuledPDF()
     pdf.add_page()
-    try:
-        pdf.add_font('Lucida', '', 'LucidaHandwriting.ttf', uni=True)
-        pdf.set_font('Lucida', '', 14)
-    except:
+
+    font_path = os.path.join(os.getcwd(), 'Handwriting.ttf')
+    if os.path.exists(font_path):
+        pdf.add_font('Handwriting', '', font_path, uni=True)
+        pdf.set_font('Handwriting', '', 16)
+    else:
         pdf.set_font('Arial', '', 14)
+
     pdf.multi_cell(0, 10, text)
 
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
