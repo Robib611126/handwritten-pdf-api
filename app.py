@@ -6,7 +6,7 @@ import os
 app = Flask(__name__)
 
 # Path to your handwriting font
-FONT_PATH = os.path.join(os.path.dirname(__file__), 'fonts', 'Handwriting.ttf.ttf')
+FONT_PATH = os.path.join(os.path.dirname(__file__), 'fonts', 'Handwriting.ttf')
 
 class RuledPDF(FPDF):
     def header(self):
