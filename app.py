@@ -5,47 +5,55 @@ import os
 
 app = Flask(__name__)
 
-# Constants
-FONT_NAME = 'Handwriting'
+# Path to font
 FONT_PATH = os.path.join(os.path.dirname(__file__), 'fonts', 'Handwriting.ttf')
 
 class RuledPDF(FPDF):
     def header(self):
-        self.set_draw_color(200, 200, 200)  # light gray for ruled lines
-        for y in range(40, 290, 10):  # leave space for heading (starts at y=40)
-            self.line(20, y, 200, y)
+        # Ruled lines (notebook style)
+        self.set_draw_color(200, 200, 200)
+        for y in range(40, 290, 10):  # start after heading space
+            self.line(25, y, 200, y)
 
-        # Draw two vertical margin lines (1 inch = ~25.4 mm ≈ 28 px)
-        self.set_draw_color(180, 180, 180)
-        self.line(38, 10, 38, 290)  # Left vertical line
-        self.line(43, 10, 43, 290)  # Right vertical line
+        # Two vertical lines at 1-inch margin (approx 25mm)
+        self.line(25, 20, 25, 290)  # red line
+        self.line(30, 20, 30, 290)  # blue line
 
 @app.route('/generate', methods=['POST'])
 def generate_pdf():
-    data = request.get_json()
-    text = data.get('text', 'No text provided.')
-
-    pdf = RuledPDF()
-    pdf.add_page()
-
     try:
-        pdf.add_font(FONT_NAME, '', FONT_PATH, uni=True)
-        pdf.set_font(FONT_NAME, '', 14)
+        data = request.get_json()
+        text = data.get('text', 'No text provided.')
+        print("[Received Text]:", text)
+
+        pdf = RuledPDF()
+        pdf.add_page()
+
+        # Set font
+        try:
+            pdf.add_font('Handwriting', '', FONT_PATH, uni=True)
+            pdf.set_font('Handwriting', '', 14)
+        except Exception as font_error:
+            print(f"[Font Error]: {font_error}")
+            pdf.set_font('Arial', '', 14)
+
+        # Blue text
+        pdf.set_text_color(0, 0, 255)
+
+        # Start writing from top margin
+        pdf.set_xy(35, 40)  # position right after header margin
+        pdf.multi_cell(0, 10, text)
+
+        # Save to temp file
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
+        pdf.output(tmp.name)
+        tmp.close()
+
+        return send_file(tmp.name, mimetype='application/pdf')
+
     except Exception as e:
-        print(f"Error loading custom font: {e}")
-        pdf.set_font('Arial', '', 14)
-
-    pdf.set_text_color(0, 0, 255)  # Blue font
-
-    # Set initial position (after heading space + margin)
-    pdf.set_xy(45, 40)
-    pdf.multi_cell(0, 10, text)
-
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
-    pdf.output(tmp.name)
-    tmp.close()
-
-    return send_file(tmp.name, mimetype='application/pdf')
+        print(f"[Server Error]: {e}")
+        return {"error": "Internal Server Error", "details": str(e)}, 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
